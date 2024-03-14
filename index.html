@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="./styles.css" />
+        <title>United States Educational Attainment</title>
+        <script src="https://cdn.jsdelivr.net/npm/d3@5"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3.0.0/dist/d3-scale-chromatic.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-require@1"></script>
+
+    </head>
+    <body>
+        <h1 id="title">United States Educational Attainment</h1>
+        <h3 id="description">Percentage of adults age 25 and older with a bachelor's degree or higher (2010-2014)</h3>
+        <svg id="map"></svg>
+
+        <!-- Tooltip element -->
+        <div class="tooltip"></div>
+        <div class="legend"></div>
+
+        <script>
+            // Define the dimensions and margins for the map
+            const width = 960;
+            const height = 600;
+
+            // Create an SVG element
+            const svg = d3.select("#map")
+                        .attr("width", width)
+                        .attr("height", height);
+
+            // Load the US counties data
+            Promise.all([
+            d3.json("https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json"),
+            d3.json("https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json")
+            ]).then(function(data) {
+                const countiesData = data[0];
+                const educationData = data[1];
+
+                // Define the color scale
+                const colorScale = d3.scaleLinear()
+                                    .domain([0,100])
+                                    .range([0, 1]);
+
+                // Draw the map
+                const counties = svg.selectAll("path")
+                .data(topojson.feature(countiesData, countiesData.objects.counties).features)
+                .enter()
+                .append("path")
+                .style("fill", "green")
+                .attr("class","county")
+                .attr("data-fips",(d,i) => educationData[i].fips)
+                .attr("data-education",(d,i) => educationData[i].bachelorsOrHigher)
+                .attr("d", d3.geoPath())
+                // Set the fill color based on educational data
+                .attr("opacity", d => {
+                    const id = d.id;
+                    const countyData = educationData.find(obj => obj.fips === id);
+                    return colorScale(countyData ? countyData.bachelorsOrHigher : 0);
+                })
+                .style("stroke", "white")
+                .style("stroke-width", 0.5);
+
+                // Tooltip functionality
+                counties.each(function(d, i) {
+                    d3.select(this)
+                    .on("mouseover", function(event) {
+                        const countyData = educationData.find(obj => obj.fips === d.id);
+                        const tooltip = d3.select(".tooltip");
+                        tooltip.transition()
+                                .style("position","absolute")
+                                .style("background-color","rgba(255, 255, 204, 0.9)")
+                                .style("padding","10px")
+                                .style("opacity", 0.9);
+                        tooltip.html(countyData ? `${countyData.area_name}, ${countyData.state}: ${countyData.bachelorsOrHigher}%` : "Data not available")
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function() {
+                        d3.select(".tooltip").transition()
+                                            .duration(500)
+                                            .style("opacity", 0);
+                    });
+                    
+                });
+                        
+            }).catch(function(error) {
+            
+                console.error("Error loading the data: " + error);
+            });
+        </script>
+        <script>
+            let lwidth = 500;
+            let lheight = 50;
+            let lpadding = 40;
+            const colorScale = d3.scaleLinear()
+                                    .domain([0,1])
+                                    .range([lpadding, lwidth - lpadding]);
+            let dataset = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6 , 0.7, 0.8, 0.9, 1]
+
+            let legend = d3.select(".legend")
+                           .append("svg")
+                           .attr("width", lwidth)
+                           .attr("height", lheight)
+                           .attr("padding", lpadding);
+
+                    legend.append("g")
+                        .attr("transform", "translate(0,"+ (lheight - lpadding)+")")
+                        .call(d3.axisBottom(colorScale));
+
+                    
+
+                    legend.selectAll("rect")
+                          .data(dataset)
+                          .enter()
+                          .append("rect")
+                          .attr("width", 42)
+                          .attr("height", 10)
+                          .attr("opacity", (d) => d)
+                          .attr("fill","green")
+                          .attr("y", 0)
+                          .attr("x", (d,i)=> i*42)
+                    
+
+
+        </script>
+</body>
+</html>
